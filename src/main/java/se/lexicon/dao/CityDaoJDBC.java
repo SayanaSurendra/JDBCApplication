@@ -2,16 +2,13 @@ package se.lexicon.dao;
 
 import se.lexicon.model.City;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 import static se.lexicon.db.MYSQLConnection.getConnection;
 
-public class CityDaoImpl implements CityDao{
+public class CityDaoJDBC implements CityDao{
 
     @Override
     public City findById(int id) {
@@ -96,6 +93,31 @@ public class CityDaoImpl implements CityDao{
     }
 
     @Override
+    public List<City> findAll() {
+        String sql="select * from city";
+        List<City> cities=new ArrayList<>();
+        try(Connection connection=getConnection();
+            Statement statement=connection.createStatement();
+            ResultSet resultSet =statement.executeQuery(sql);
+        ) {
+            while(resultSet.next()){
+                    int id1=resultSet.getInt("id");
+                    String name=resultSet.getString("name");
+                    String countryCode=resultSet.getString("countryCode");
+                    String district=resultSet.getString("district");
+                    int population=resultSet.getInt("population");
+                    cities.add(new City(id1,name,countryCode,district,population));
+
+
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return cities;
+    }
+
+    @Override
     public City add(City city) {
         String sql="insert into city(name,countrycode,district,population) values(?,?,?,?)";
 
@@ -111,7 +133,7 @@ public class CityDaoImpl implements CityDao{
              if(affectedRows > 0){
                  try(ResultSet generatedKeys= preparedStatement.getGeneratedKeys();){
                      if(generatedKeys.next()){
-                         System.out.println("generated key::::"+generatedKeys.getInt(1));
+                        // System.out.println("generated key::::"+generatedKeys.getInt(1));
                         city.setId(generatedKeys.getInt(1));
                      }
 
@@ -127,11 +149,44 @@ public class CityDaoImpl implements CityDao{
 
     @Override
     public City update(City city) {
+        String sql="update city  set name= ? , countrycode=?, district=? ,population=? where id=? ";
+
+        try(Connection connection=getConnection();
+            PreparedStatement preparedStatement= connection.prepareStatement(sql);
+        ){
+
+            preparedStatement.setString(1,city.getName());
+            preparedStatement.setString(2, city.getCountryCode());
+            preparedStatement.setString(3, city.getDistrict());
+            preparedStatement.setInt(4,city.getPopulation());
+            preparedStatement.setInt(5,city.getId());
+
+             preparedStatement.executeUpdate();
+             return city;
+
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         return null;
     }
 
     @Override
     public int delete(City city) {
+
+     String sql="delete from city where id=?";
+     try(Connection connection=getConnection();
+        PreparedStatement preparedStatement=connection.prepareStatement(sql);
+     ){
+         preparedStatement.setInt(1,city.getId());
+         return preparedStatement.executeUpdate();
+
+     } catch (SQLException e) {
+         e.printStackTrace();
+     }
+
         return 0;
     }
 }
